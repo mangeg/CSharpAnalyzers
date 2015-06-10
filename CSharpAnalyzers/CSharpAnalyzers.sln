@@ -3,7 +3,31 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.22823.1
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers", "src\EventSourceAnalyzers\EventSourceAnalyzers\EventSourceAnalyzers.csproj", "{A66B243B-0435-4FFE-930E-08228E744DBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Test", "src\EventSourceAnalyzers\EventSourceAnalyzers.Test\EventSourceAnalyzers.Test.csproj", "{530189B7-20E7-4F4D-9FAF-6F2C13C20BF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Vsix", "src\EventSourceAnalyzers\EventSourceAnalyzers.Vsix\EventSourceAnalyzers.Vsix.csproj", "{EE25798C-0A76-4B7B-956A-94AC1355DB4B}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A66B243B-0435-4FFE-930E-08228E744DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A66B243B-0435-4FFE-930E-08228E744DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A66B243B-0435-4FFE-930E-08228E744DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A66B243B-0435-4FFE-930E-08228E744DBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{530189B7-20E7-4F4D-9FAF-6F2C13C20BF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{530189B7-20E7-4F4D-9FAF-6F2C13C20BF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{530189B7-20E7-4F4D-9FAF-6F2C13C20BF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{530189B7-20E7-4F4D-9FAF-6F2C13C20BF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
