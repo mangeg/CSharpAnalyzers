@@ -3,6 +3,7 @@ namespace EventSourceAnalyzers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -121,6 +122,67 @@ namespace EventSourceAnalyzers
                     return true;
 
             return false;
+        }
+        public static IParameterSymbol DetermineParameter(
+            this ArgumentSyntax argument,
+            SemanticModel semanticModel,
+            bool allowParams = false,
+            CancellationToken cancellationToken = default(CancellationToken) )
+        {
+            var argumentList = argument.Parent as BaseArgumentListSyntax;
+            if ( argumentList == null )
+            {
+                return null;
+            }
+
+            var invocableExpression = argumentList.Parent as ExpressionSyntax;
+            if ( invocableExpression == null )
+            {
+                return null;
+            }
+
+            var symbol = semanticModel.GetSymbolInfo( invocableExpression, cancellationToken ).Symbol as IMethodSymbol;
+            if ( symbol == null )
+            {
+                return null;
+            }
+
+            var parameters = symbol.Parameters;
+
+            // Handle named argument
+            if ( argument.NameColon != null && !argument.NameColon.IsMissing )
+            {
+                var name = argument.NameColon.Name.Identifier.ValueText;
+                return parameters.FirstOrDefault( p => p.Name == name );
+            }
+
+            // Handle positional argument
+            var index = argumentList.Arguments.IndexOf( argument );
+            if ( index < 0 )
+            {
+                return null;
+            }
+
+            if ( index < parameters.Length )
+            {
+                return parameters[index];
+            }
+
+            if ( allowParams )
+            {
+                var lastParameter = parameters.LastOrDefault();
+                if ( lastParameter == null )
+                {
+                    return null;
+                }
+
+                if ( lastParameter.IsParams )
+                {
+                    return lastParameter;
+                }
+            }
+
+            return null;
         }
     }
 }

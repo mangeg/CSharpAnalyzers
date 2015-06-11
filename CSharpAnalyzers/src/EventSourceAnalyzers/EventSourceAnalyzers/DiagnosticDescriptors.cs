@@ -39,5 +39,41 @@ namespace EventSourceAnalyzers
                 DiagnosticSeverity.Warning,
                 true
                 );
+        public static readonly DiagnosticDescriptor MultipleCallToWriteEvent =
+            new DiagnosticDescriptor(
+                DiagnosticIds.MultipleCallToWriteEvent,
+                "Multiple calls to WriteEvent",
+                "WriteEvent should only be called once per event method.",
+                DiagnosticCategories.Language,
+                DiagnosticSeverity.Warning,
+                true
+                );
+        public static readonly DiagnosticDescriptor NoCalToWriteEvent =
+             new DiagnosticDescriptor(
+                 DiagnosticIds.NoCallToWriteEvent,
+                 "No calls to WriteEvent",
+                 "WriteEvent should only be called once per event method.",
+                 DiagnosticCategories.Language,
+                 DiagnosticSeverity.Warning,
+                 true
+                 );
+        public static readonly DiagnosticDescriptor ParametersNotPassedInTheSameOrder =
+             new DiagnosticDescriptor(
+                 DiagnosticIds.ParametersNotPassedInTheSameOrder,
+                 "Input parameters are not passed in the correct order to WriteEvent",
+                 "Inout parameters to the event method should be passed in sthe same order to WriteEvent",
+                 DiagnosticCategories.Language,
+                 DiagnosticSeverity.Error,
+                 true
+                 );
+        public static readonly DiagnosticDescriptor NotAllInputParametersPassed =
+             new DiagnosticDescriptor(
+                 DiagnosticIds.NotAllInputParametersPassed,
+                 "Not all input parameters to the event are passed to WriteEvent",
+                 "All input parameters to the event method should be passed to WriteEvent",
+                 DiagnosticCategories.Language,
+                 DiagnosticSeverity.Warning,
+                 true
+                 );
     }
 }
