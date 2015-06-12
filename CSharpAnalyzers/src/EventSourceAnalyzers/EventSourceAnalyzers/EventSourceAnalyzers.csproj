@@ -32,15 +32,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DiagnosticAnalyzer.cs" />
+    <Compile Include="CodeFixes\ParametersNotPassedInTheSameOrderFixer.cs" />
+    <Compile Include="CodeFixes\UseConstantAdderFixer.cs" />
+    <Compile Include="CodeFixes\WriteEventShouldBeCalled.cs" />
+    <Compile Include="Analyzers\DiagnosticAnalyzer.cs" />
     <Compile Include="DiagnosticCategories.cs" />
     <Compile Include="DiagnosticDescriptors.cs" />
     <Compile Include="DiagnosticIds.cs" />
     <Compile Include="EventSourceSpecificExtensions.cs" />
     <Compile Include="EventSourceTypeNames.cs" />
+    <Compile Include="EventSourceTypeSymbols.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UseSameEventIdCodeFixer.cs" />
+    <Compile Include="CodeFixes\UseSameEventIdCodeFixer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Diagnostic.nuspec">
@@ -54,7 +58,6 @@
     <None Include="tools\uninstall.ps1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.0.0-rc2\tools\analyzers\C#\Microsoft.CodeAnalysis.Analyzers.dll" />

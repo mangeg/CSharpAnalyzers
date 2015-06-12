@@ -61,7 +61,7 @@ namespace EventSourceAnalyzers
              new DiagnosticDescriptor(
                  DiagnosticIds.ParametersNotPassedInTheSameOrder,
                  "Input parameters are not passed in the correct order to WriteEvent",
-                 "Inout parameters to the event method should be passed in sthe same order to WriteEvent",
+                 "Input parameters to the event method should be passed in sthe same order to WriteEvent",
                  DiagnosticCategories.Language,
                  DiagnosticSeverity.Error,
                  true
