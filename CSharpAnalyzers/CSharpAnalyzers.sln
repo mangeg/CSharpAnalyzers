@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Test",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Vsix", "src\EventSourceAnalyzers\EventSourceAnalyzers.Vsix\EventSourceAnalyzers.Vsix.csproj", "{EE25798C-0A76-4B7B-956A-94AC1355DB4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Refactoring", "src\EventSourceAnalyzers.Refactoring\EventSourceAnalyzers.Refactoring\EventSourceAnalyzers.Refactoring.csproj", "{DF87A1C6-8106-4959-A619-EF4745BEC35C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,10 +27,6 @@ Global
 		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EE25798C-0A76-4B7B-956A-94AC1355DB4B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DF87A1C6-8106-4959-A619-EF4745BEC35C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DF87A1C6-8106-4959-A619-EF4745BEC35C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DF87A1C6-8106-4959-A619-EF4745BEC35C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DF87A1C6-8106-4959-A619-EF4745BEC35C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
