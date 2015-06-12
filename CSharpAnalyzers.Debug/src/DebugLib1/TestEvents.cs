@@ -6,21 +6,27 @@
     public class TestEvents : EventSource
     {
         private const int NormalEvents = 100;
+        private const int SpecialEvent = 1000;
 
-        [Event( NormalEvents + 1 )]
-        public void EventOne( string arg1, string arg2 )
+        [Event( SpecialEvent + 5 )]
+        public void EvenThree( string arg1, string arg2, int test )
         {
-            WriteEvent( NormalEvents + 1, arg1, arg2 );
+            if ( IsEnabled() )
+                WriteEvent( SpecialEvent + 5, arg1, arg2, test );
         }
-        [Event( NormalEvents + 2 )]
-        public void EvenTwo( string arg1, string arg2 )
+
+        [Event( NormalEvents + 3, Message = "Hello", Level = EventLevel.LogAlways, Keywords = (EventKeywords)2 )]
+        public void EventOne(string input1, int inputVar2, int test )
         {
-            WriteEvent( NormalEvents + 10, arg1, arg2 );
+            if ( IsEnabled( EventLevel.LogAlways, (EventKeywords)2 ) )
+                WriteEvent( NormalEvents + 3, input1, inputVar2, test );
         }
-        [Event( NormalEvents + 1 + 3 - 2 )]
-        public void EvenThree( string arg1, string arg2, int outer )
+
+        
+        public void EventTest( string input )
         {
-            WriteEvent( NormalEvents + 1 + outer, arg1, arg2 );
+            if ( IsEnabled( EventLevel.Verbose, EventKeywords.EventLogClassic ) )
+                WriteEvent( NormalEvents + 44, input );
         }
     }
 }

@@ -1,4 +1,4 @@
-namespace EventSourceAnalyzers
+namespace EventSourceAnalyzers.CodeFixes
 {
     using System.Collections.Immutable;
     using System.Threading.Tasks;
@@ -12,7 +12,9 @@ namespace EventSourceAnalyzers
     public class UseSameEventIdCodeFixer : CodeFixProvider
     {
         public override ImmutableArray<string> FixableDiagnosticIds =>
-            ImmutableArray.Create( DiagnosticIds.CallToWriteEventMustUseSameEventId );
+            ImmutableArray.Create( 
+                DiagnosticIds.CallToWriteEventMustUseSameEventId, 
+                DiagnosticIds.CallToWriteEventIdShouldBeConstant );
 
         public override async Task RegisterCodeFixesAsync( CodeFixContext context )
         {
@@ -70,6 +72,11 @@ namespace EventSourceAnalyzers
             }
 
             return Task.FromResult( document.WithSyntaxRoot( newRoot ) );
+        }
+
+        public override FixAllProvider GetFixAllProvider()
+        {
+            return WellKnownFixAllProviders.BatchFixer;
         }
     }
 }

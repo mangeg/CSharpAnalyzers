@@ -7,6 +7,7 @@ namespace EventSourceAnalyzers
         private static ITypeSymbol _eventAttribute;
         private static ITypeSymbol _eventSourceAttribute;
         private static ITypeSymbol _eventSource;
+        private static ITypeSymbol _nonEventAttribute;
 
         internal static ITypeSymbol GetEventAttribute( Compilation compilation )
         {
@@ -19,6 +20,11 @@ namespace EventSourceAnalyzers
         internal static ITypeSymbol GetEventSource( Compilation compilation )
         {
             return _eventSource ?? ( _eventSource = compilation.GetTypeByMetadataName( EventSourceTypeNames.EventSource ) );
+        }
+        internal static ITypeSymbol GetNonEventAttribute( Compilation compilation )
+        {
+            return _nonEventAttribute ??
+                ( _nonEventAttribute = compilation.GetTypeByMetadataName( EventSourceTypeNames.NonEventAttribute ) );
         }
     }
 }

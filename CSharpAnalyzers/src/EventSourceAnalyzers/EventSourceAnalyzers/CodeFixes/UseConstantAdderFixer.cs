@@ -1,4 +1,4 @@
-namespace EventSourceAnalyzers
+namespace EventSourceAnalyzers.CodeFixes
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
@@ -114,6 +114,11 @@ namespace EventSourceAnalyzers
                 ( n1, n2 ) => replacementInfo[n1] );
 
             return Task.FromResult( context.Document.WithSyntaxRoot( newRoot ) );
+        }
+
+        public override FixAllProvider GetFixAllProvider()
+        {
+            return WellKnownFixAllProviders.BatchFixer;
         }
     }
 }

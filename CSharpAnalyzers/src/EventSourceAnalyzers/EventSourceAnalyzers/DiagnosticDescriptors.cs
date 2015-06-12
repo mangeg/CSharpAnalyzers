@@ -75,5 +75,14 @@ namespace EventSourceAnalyzers
                  DiagnosticSeverity.Warning,
                  true
                  );
+        public static readonly DiagnosticDescriptor MethodsShouldHaveAttributes =
+             new DiagnosticDescriptor(
+                 DiagnosticIds.MethodShouldHaveAttributes,
+                 "All methods should have EventAttribute or NonEventAttribute",
+                 "All methods on the eventsource should have EventAttribute or NonEventAttribute",
+                 DiagnosticCategories.Language,
+                 DiagnosticSeverity.Warning,
+                 true
+                 );
     }
 }

@@ -1,7 +1,8 @@
-namespace EventSourceAnalyzers
+namespace EventSourceAnalyzers.CodeFixes
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics.Tracing;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.CodeAnalysis;
@@ -15,6 +16,7 @@ namespace EventSourceAnalyzers
     {
         public override ImmutableArray<string> FixableDiagnosticIds =>
             ImmutableArray.Create( DiagnosticIds.NoCallToWriteEvent );
+
         public override async Task RegisterCodeFixesAsync( CodeFixContext context )
         {
             var semanticModel = await context.Document.GetSemanticModelAsync( context.CancellationToken );
@@ -44,15 +46,31 @@ namespace EventSourceAnalyzers
 
                     context.RegisterCodeFix(
                         CodeAction.Create(
-                            "Use same event ID",
-                            ctx => Document( context.Document, root, declaration, attrib ) ),
+                            "Add WriteEvent call",
+                            ctx => AddWriteEventMethodSimple( context.Document, root, declaration, attrib, 1 ) ),
+                        context.Diagnostics );
+                    context.RegisterCodeFix(
+                        CodeAction.Create(
+                            "Add WriteEvent call with enabled check",
+                            ctx => AddWriteEventMethodSimple( context.Document, root, declaration, attrib, 2 ) ),
+                        context.Diagnostics );
+                    context.RegisterCodeFix(
+                        CodeAction.Create(
+                            "Add WriteEvent call with enabled check. (Detailed)",
+                            ctx => AddWriteEventMethodSimple( context.Document, root, declaration, attrib, 3 ) ),
                         context.Diagnostics );
 
                     return;
                 }
             }
         }
-        public static Task<Document> Document( Document document, SyntaxNode root, BlockSyntax declaration, AttributeSyntax attrib )
+
+        public static Task<Document> AddWriteEventMethodSimple(
+            Document document,
+            SyntaxNode root,
+            BlockSyntax declaration,
+            AttributeSyntax attrib,
+            int detailLevel = 1 )
         {
             var newStatements = new List<StatementSyntax>();
             newStatements.AddRange( declaration.Statements );
@@ -73,17 +91,103 @@ namespace EventSourceAnalyzers
                 args = args.Add( arg );
             }
 
-            var invocationStatement =
-                SyntaxFactory.ExpressionStatement(
-                    SyntaxFactory.InvocationExpression( 
-                        SyntaxFactory.IdentifierName( "WriteEvent" ), 
+            if ( detailLevel == 1 )
+            {
+                var writeEventStatement = SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.IdentifierName( "WriteEvent" ),
+                        SyntaxFactory.ArgumentList( args ) ) );
+                newStatements.Add( writeEventStatement );
+            }
+            else if ( detailLevel == 2 )
+            {
+                var writeEventStatement = SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.IdentifierName( "WriteEvent" ),
                         SyntaxFactory.ArgumentList( args ) ) );
 
-            newStatements.Add( invocationStatement );
+                var enabledCheckStatement =
+                    SyntaxFactory.IfStatement(
+                        SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.IdentifierName( "IsEnabled" ) ),
+                        writeEventStatement );
+                newStatements.Add( enabledCheckStatement );
+            }
+            else
+            {
+                var levelAttrib =
+                    attrib.ArgumentList.Arguments.FirstOrDefault( a => a.NameEquals?.Name?.Identifier.ValueText == "Level" );
+                var keywordsAttrib =
+                    attrib.ArgumentList.Arguments.FirstOrDefault( a => a.NameEquals?.Name?.Identifier.ValueText == "Keywords" );
+
+                
+
+                var enabledCheckArgs = new SeparatedSyntaxList<ArgumentSyntax>();
+
+                if ( levelAttrib != null )
+                    enabledCheckArgs = enabledCheckArgs.Add( SyntaxFactory.Argument( levelAttrib.Expression ) );
+                else
+                {
+                    enabledCheckArgs =
+                        enabledCheckArgs.Add(
+                            SyntaxFactory.Argument(
+                                SyntaxFactory.MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression,
+                                    SyntaxFactory.IdentifierName( "EventLevel" ),
+                                    SyntaxFactory.IdentifierName( "LogAlways" ) ) ) );
+                }
+                if ( keywordsAttrib != null )
+                    enabledCheckArgs = enabledCheckArgs.Add( SyntaxFactory.Argument( keywordsAttrib.Expression ) );
+                else
+                {
+                    enabledCheckArgs =
+                        enabledCheckArgs.Add(
+                            SyntaxFactory.Argument(
+                                SyntaxFactory.MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression,
+                                    SyntaxFactory.IdentifierName( "EventKeywords" ),
+                                    SyntaxFactory.IdentifierName( "None" ) ) ) );
+                }
+
+                var writeEventStatement = SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.IdentifierName( "WriteEvent" ),
+                        SyntaxFactory.ArgumentList( args ) ) );
+                var enabledCheckStatement =
+                    SyntaxFactory.IfStatement(
+                        SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.IdentifierName( "IsEnabled" ),
+                            SyntaxFactory.ArgumentList( enabledCheckArgs ) ),
+                        writeEventStatement );
+
+                newStatements.Add( enabledCheckStatement );
+            }
+
+            
             var newBlock = SyntaxFactory.Block( newStatements );
             var newRoot = root.ReplaceNode( declaration, newBlock );
 
             return Task.FromResult( document.WithSyntaxRoot( newRoot ) );
+        }
+
+        public override FixAllProvider GetFixAllProvider()
+        {
+            return WellKnownFixAllProviders.BatchFixer;
+        }
+    }
+
+    class TestEvent : EventSource
+    {
+        [Event( 5, Message = "Hello", Level = EventLevel.LogAlways, Keywords = EventKeywords.None )]
+        public void EventOne( string iuput1 )
+        {
+            if ( IsEnabled() )
+                WriteEvent( 3, iuput1 );
+            if ( IsEnabled( EventLevel.Error, EventKeywords.None ) )
+                WriteEvent( 5, iuput1 );
+        }
+
+        [NonEvent]
+        public void EventTwo()
+        {
         }
     }
 }

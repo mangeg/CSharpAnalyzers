@@ -1,4 +1,4 @@
-namespace EventSourceAnalyzers
+namespace EventSourceAnalyzers.Analyzers
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
@@ -20,7 +20,8 @@ namespace EventSourceAnalyzers
             DiagnosticDescriptors.NoCalToWriteEvent,
             DiagnosticDescriptors.MultipleCallToWriteEvent,
             DiagnosticDescriptors.ParametersNotPassedInTheSameOrder,
-            DiagnosticDescriptors.NotAllInputParametersPassed );
+            DiagnosticDescriptors.NotAllInputParametersPassed,
+            DiagnosticDescriptors.MethodsShouldHaveAttributes );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -28,6 +29,26 @@ namespace EventSourceAnalyzers
             context.RegisterSyntaxNodeAction( CheckForVariableInEventParam, SyntaxKind.AttributeArgument );
             context.RegisterSyntaxNodeAction( CheckWriteEventIdToEventAttributeId, SyntaxKind.InvocationExpression );
             context.RegisterSyntaxNodeAction( CheckWriteEventCall, SyntaxKind.ParameterList );
+            context.RegisterSymbolAction( ctx => {
+                var methodSymbol = ctx.Symbol as IMethodSymbol;
+                if ( methodSymbol == null ) return;
+
+                var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( ctx.Compilation );
+                var nonEventAttributeSymbol = EventSourceTypeSymbols.GetNonEventAttribute( ctx.Compilation );
+
+                var attribs = methodSymbol.GetAttributes();
+
+                if ( !attribs.Any( a => Equals( a.AttributeClass, eventAttributeSymbol ) || Equals( a.AttributeClass, nonEventAttributeSymbol ) ) )
+                {
+                    ctx.ReportDiagnostic( 
+                        Diagnostic.Create( 
+                            DiagnosticDescriptors.MethodsShouldHaveAttributes, 
+                            methodSymbol.Locations[0] ) );
+                }
+
+                //if(methodSymbol.GetAttributes().All( a => a ))
+
+            }, SymbolKind.Method );
         }
 
         internal static void CheckForDuplicateEventIds( SymbolAnalysisContext ctx )
@@ -167,6 +188,7 @@ namespace EventSourceAnalyzers
         {
 
             var eventSourceType = EventSourceTypeSymbols.GetEventSource( ctx.SemanticModel.Compilation );
+            var eventAttributeType = EventSourceTypeSymbols.GetEventAttribute( ctx.SemanticModel.Compilation );
             if ( eventSourceType == null )
                 return;
 
@@ -174,15 +196,40 @@ namespace EventSourceAnalyzers
             if ( parameterListSyntax == null ) return;
 
             var methodDeclSyntax = parameterListSyntax.FirstAncestorOrSelf<MethodDeclarationSyntax>();
+            // Parameter list but no method?
+            if ( methodDeclSyntax == null )
+                return;
+
+            // No Event attribute
+            if ( !methodDeclSyntax.AttributeLists.Any( l => l.Attributes.Any() ) )
+                return;
+
+            var found = false;
+            foreach ( var attribList in methodDeclSyntax.AttributeLists )
+            {
+                foreach ( var attrib in attribList.Attributes )
+                {
+                    var attribSymbol = ctx.SemanticModel.GetSymbolInfo( attrib );
+                    if ( attribSymbol.Symbol?.ContainingType == eventAttributeType )
+                    {
+                        found = true;
+                    }
+                }
+            }
+
+            if ( !found )
+                return;
+
             var methodSymbolInfo = ctx.SemanticModel.GetDeclaredSymbol( methodDeclSyntax );
 
             if ( !Equals( eventSourceType, methodSymbolInfo.ContainingType.BaseType ) )
                 return;
 
-            var allInvocations =
-                methodDeclSyntax.Body.Statements.OfType<ExpressionStatementSyntax>()
-                    .Where( s => s.Expression is InvocationExpressionSyntax )
-                    .Select( s => s.Expression as InvocationExpressionSyntax );
+            // Typing new method
+            if ( methodDeclSyntax.Body == null )
+                return;
+
+            var allInvocations = methodDeclSyntax.Body.DescendantNodes().OfType<InvocationExpressionSyntax>();
 
             var writeEventMethodSymbols = new List<InvocationExpressionSyntax>();
             foreach ( var invocationExpressionSyntax in allInvocations )
