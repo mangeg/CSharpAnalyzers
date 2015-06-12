@@ -15,18 +15,11 @@
                 WriteEvent( SpecialEvent + 5, arg1, arg2, test );
         }
 
-        [Event( NormalEvents + 3, Message = "Hello", Level = EventLevel.LogAlways, Keywords = (EventKeywords)2 )]
+        [Event( SpecialEvent + 5, Message = "Hello", Level = EventLevel.LogAlways, Keywords = (EventKeywords)2 )]
         public void EventOne(string input1, int inputVar2, int test )
         {
             if ( IsEnabled( EventLevel.LogAlways, (EventKeywords)2 ) )
-                WriteEvent( NormalEvents + 3, input1, inputVar2, test );
-        }
-
-        
-        public void EventTest( string input )
-        {
-            if ( IsEnabled( EventLevel.Verbose, EventKeywords.EventLogClassic ) )
-                WriteEvent( NormalEvents + 44, input );
+                WriteEvent( SpecialEvent + 5, input1, inputVar2, test );
         }
     }
 }

@@ -88,10 +88,10 @@ namespace EventSourceAnalyzers.CodeFixes
     }
 
     [ExportCodeFixProvider( LanguageNames.CSharp )]
-    public class MethodShouldHaveAttributeFixer : CodeFixProvider
+    public class EventIdUsedFixer : CodeFixProvider
     {
-        public override ImmutableArray<string> FixableDiagnosticIds
-            => ImmutableArray.Create<string>( DiagnosticIds.MethodShouldHaveAttributes );
+        public override ImmutableArray<string> FixableDiagnosticIds =>
+            ImmutableArray.Create( DiagnosticIds.EventNumberUsedMultipleTimes );
 
         public override async Task RegisterCodeFixesAsync( CodeFixContext context )
         {
@@ -108,24 +108,15 @@ namespace EventSourceAnalyzers.CodeFixes
             if ( declaration == null )
                 return;
 
-            context.RegisterCodeFix( CodeAction.Create( "Add Event attribute",
-                ctx => {
+
+            context.RegisterCodeFix( CodeAction.Create( "Use next free number",
+                token => {
+
+
+
                     return Task.FromResult( context.Document );
-                } ),
-                context.Diagnostics );
-            context.RegisterCodeFix( CodeAction.Create( "Add NonEvent attribute",
-                ctx => {
-                    /*var attribs = new SeparatedSyntaxList<AttributeSyntax>();
-                    attribs = attribs.Add( SyntaxFactory.Attribute( SyntaxFactory.IdentifierName( "NonEvent" ) ) );
-
-                    declaration.AttributeLists.Add( SyntaxFactory.AttributeList( attribs ) );
-
-                    var newRoot = root.InsertNodesBefore( declaration, new[] { SyntaxFactory.AttributeList( attribs ) } );
-
-                    return Task.FromResult( context.Document.WithSyntaxRoot( newRoot ) );*/
-                    return Task.FromResult( context.Document );
-                } ),
-                context.Diagnostics );
+                } ), context.Diagnostics );
         }
+        
     }
 }

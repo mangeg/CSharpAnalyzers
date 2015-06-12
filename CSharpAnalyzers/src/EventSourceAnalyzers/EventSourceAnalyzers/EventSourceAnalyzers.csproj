@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CodeFixes\MethodShouldHaveAttributeFixer.cs" />
     <Compile Include="CodeFixes\ParametersNotPassedInTheSameOrderFixer.cs" />
     <Compile Include="CodeFixes\UseConstantAdderFixer.cs" />
     <Compile Include="CodeFixes\WriteEventShouldBeCalled.cs" />
