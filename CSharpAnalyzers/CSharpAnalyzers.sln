@@ -11,6 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceAnalyzers.Vsix",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4B30408A-9FEE-44B0-BC68-F07E1474FB38}"
 	ProjectSection(SolutionItems) = preProject
+		..\licens.txt = ..\licens.txt
 		..\readme.md = ..\readme.md
 	EndProjectSection
 EndProject

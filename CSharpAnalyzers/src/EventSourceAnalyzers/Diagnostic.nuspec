@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
-    <id>EventSourceAnalyzers</id>
+    <id>EventSource.Analyzers</id>
     <version>1.0.0.0</version>
-    <title>EventSourceAnalyzers</title>
-    <authors>EventSourceAnalyzers</authors>
-    <owners>EventSourceAnalyzers</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
+    <title>EventSource Analyzers</title>
+    <authors>Magnus Gideryd</authors>
+    <owners>Magnus Gideryd</owners>
+    <licenseUrl>https://github.com/mangeg/CSharpAnalyzers/blob/master/licens.txt</licenseUrl>
+    <projectUrl>https://github.com/mangeg/CSharpAnalyzers</projectUrl>
     <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>EventSourceAnalyzers</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
-    <copyright>Copyright</copyright>
-    <tags>EventSourceAnalyzers, analyzers</tags>
+    <description>Code analyzers with fixes for using the EventSource class.  Verifies event ID usage and calls to WriteEvent(...).</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright (c) 2015 Magnus Gideryd</copyright>
+    <tags>EventSource Analyzers, Analyzers, Roslyn Analyzer</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System" targetFramework="" />
     </frameworkAssemblies>
