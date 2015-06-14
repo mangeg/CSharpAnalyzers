@@ -157,5 +157,47 @@ class TestSource : EventSource
 ";
             HasDiagnostic( code, DiagnosticIds.EventNumberUsedMultipleTimes );
         }
+
+        [Test]
+        public void NoDiagnosticForStaticMethods()
+        {
+            var code = @"
+using System.Diagnostics.Tracing;
+
+[EventSource]
+class TestSource : EventSource
+{
+    private const int NormalEvents = 100;
+
+    public static void Test()
+    {
+    }
+}
+";
+            NoDiagnostic( code, DiagnosticIds.MethodShouldHaveAttributes );
+        }
+
+        [Test]
+        public void NoDiagnosticForNonPublicMethods()
+        {
+            var code = @"
+using System.Diagnostics.Tracing;
+
+[EventSource]
+class TestSource : EventSource
+{
+    private const int NormalEvents = 100;
+
+    private void Test()
+    {
+    }
+
+    protected void Test2()
+    {
+    }
+}
+";
+            NoDiagnostic( code, DiagnosticIds.MethodShouldHaveAttributes );
+        }
     }
 }

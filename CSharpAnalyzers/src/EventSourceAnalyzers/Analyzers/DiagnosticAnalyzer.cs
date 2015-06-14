@@ -47,6 +47,12 @@ namespace EventSourceAnalyzers.Analyzers
             if ( !methodSymbol.ContainingType.IsDerivedFrom( eventSourceSymbol ) )
                 return;
 
+            if ( methodSymbol.IsStatic )
+                return;
+
+            if ( methodSymbol.DeclaredAccessibility != Accessibility.Public )
+                return;
+
             var attribs = methodSymbol.GetAttributes();
 
             if ( !attribs.Any( a => Equals( a.AttributeClass, eventAttributeSymbol ) || Equals( a.AttributeClass, nonEventAttributeSymbol ) ) )
