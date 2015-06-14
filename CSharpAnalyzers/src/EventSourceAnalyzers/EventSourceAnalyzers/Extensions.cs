@@ -24,47 +24,6 @@ namespace EventSourceAnalyzers
             return attributeData;
         }
 
-        public static BaseParameterListSyntax GetParameterList( this SyntaxNode node )
-        {
-            switch ( node?.Kind() )
-            {
-            case SyntaxKind.MethodDeclaration:
-                return ( node as MethodDeclarationSyntax )?.ParameterList;
-            case SyntaxKind.ConstructorDeclaration:
-                return ( node as ConstructorDeclarationSyntax )?.ParameterList;
-            case SyntaxKind.IndexerDeclaration:
-                return ( node as IndexerDeclarationSyntax )?.ParameterList;
-            case SyntaxKind.ParenthesizedLambdaExpression:
-                return ( node as ParenthesizedLambdaExpressionSyntax )?.ParameterList;
-            case SyntaxKind.AnonymousMethodExpression:
-                return ( node as AnonymousMethodExpressionSyntax )?.ParameterList;
-            default:
-                return null;
-            }
-        }
-
-        public static IEnumerable<ParameterSyntax> GetParametersInScope( this SyntaxNode node )
-        {
-            foreach ( var ancestor in node.AncestorsAndSelf() )
-            {
-                if ( ancestor.IsKind( SyntaxKind.SimpleLambdaExpression ) )
-                {
-                    yield return ( (SimpleLambdaExpressionSyntax)ancestor ).Parameter;
-                }
-                else
-                {
-                    var parameterList = ancestor.GetParameterList();
-                    if ( parameterList != null )
-                    {
-                        foreach ( var parameter in parameterList.Parameters )
-                        {
-                            yield return parameter;
-                        }
-                    }
-                }
-            }
-        }
-
         public static INamedTypeSymbol GetAttribute( this SemanticModel semanticModel, AttributeArgumentSyntax attribArgument )
         {
             var argumentList = attribArgument.Parent as AttributeArgumentListSyntax;
@@ -109,80 +68,47 @@ namespace EventSourceAnalyzers
 
         public static bool ContainsVariable( this BinaryExpressionSyntax expression )
         {
-            var matchKind = SyntaxKind.IdentifierName;
+            const SyntaxKind matchKind = SyntaxKind.IdentifierName;
             if ( expression.Left.IsKind( matchKind ) || expression.Right.IsKind( matchKind ) )
                 return true;
 
-            if ( expression.Left is BinaryExpressionSyntax )
-                if ( ( expression.Left as BinaryExpressionSyntax ).ContainsVariable() )
-                    return true;
+            var otherFound = false;
 
-            if ( expression.Right is BinaryExpressionSyntax )
-                if ( ( expression.Right as BinaryExpressionSyntax ).ContainsVariable() )
+            if ( expression.Left is BinaryExpressionSyntax )
+                otherFound = ( (BinaryExpressionSyntax)expression.Left ).ContainsVariable();
+
+            if ( expression.Right is BinaryExpressionSyntax && !otherFound )
+                otherFound = ( (BinaryExpressionSyntax)expression.Right ).ContainsVariable();
+
+            if ( expression.Left is ParenthesizedExpressionSyntax && !otherFound )
+                otherFound = ( (ParenthesizedExpressionSyntax)expression.Left ).ContainsVariable();
+
+            if ( expression.Right is ParenthesizedExpressionSyntax && !otherFound )
+                otherFound = ( (ParenthesizedExpressionSyntax)expression.Right ).ContainsVariable();
+
+            return otherFound;
+        }
+        public static bool ContainsVariable( this ParenthesizedExpressionSyntax expression )
+        {
+            const SyntaxKind matchKind = SyntaxKind.IdentifierName;
+            if ( expression.Expression.IsKind( matchKind ) ) return true;
+
+            if ( ( expression.Expression is BinaryExpressionSyntax ) )
+                if ( ( expression.Expression as BinaryExpressionSyntax ).ContainsVariable() )
                     return true;
 
             return false;
         }
-        public static IParameterSymbol DetermineParameter(
-            this ArgumentSyntax argument,
-            SemanticModel semanticModel,
-            bool allowParams = false,
-            CancellationToken cancellationToken = default(CancellationToken) )
+
+        public static bool IsDerivedFrom( this ITypeSymbol type, ITypeSymbol toCheck )
         {
-            var argumentList = argument.Parent as BaseArgumentListSyntax;
-            if ( argumentList == null )
-            {
-                return null;
-            }
+            if ( Equals( type.BaseType, toCheck ) )
+                return true;
 
-            var invocableExpression = argumentList.Parent as ExpressionSyntax;
-            if ( invocableExpression == null )
-            {
-                return null;
-            }
+            if ( type.BaseType != null )
+                return IsDerivedFrom( type.BaseType, toCheck );
 
-            var symbol = semanticModel.GetSymbolInfo( invocableExpression, cancellationToken ).Symbol as IMethodSymbol;
-            if ( symbol == null )
-            {
-                return null;
-            }
-
-            var parameters = symbol.Parameters;
-
-            // Handle named argument
-            if ( argument.NameColon != null && !argument.NameColon.IsMissing )
-            {
-                var name = argument.NameColon.Name.Identifier.ValueText;
-                return parameters.FirstOrDefault( p => p.Name == name );
-            }
-
-            // Handle positional argument
-            var index = argumentList.Arguments.IndexOf( argument );
-            if ( index < 0 )
-            {
-                return null;
-            }
-
-            if ( index < parameters.Length )
-            {
-                return parameters[index];
-            }
-
-            if ( allowParams )
-            {
-                var lastParameter = parameters.LastOrDefault();
-                if ( lastParameter == null )
-                {
-                    return null;
-                }
-
-                if ( lastParameter.IsParams )
-                {
-                    return lastParameter;
-                }
-            }
-
-            return null;
+            return false;
         }
     }
 }

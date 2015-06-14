@@ -173,21 +173,4 @@ namespace EventSourceAnalyzers.CodeFixes
             return WellKnownFixAllProviders.BatchFixer;
         }
     }
-
-    class TestEvent : EventSource
-    {
-        [Event( 5, Message = "Hello", Level = EventLevel.LogAlways, Keywords = EventKeywords.None )]
-        public void EventOne( string iuput1 )
-        {
-            if ( IsEnabled() )
-                WriteEvent( 3, iuput1 );
-            if ( IsEnabled( EventLevel.Error, EventKeywords.None ) )
-                WriteEvent( 5, iuput1 );
-        }
-
-        [NonEvent]
-        public void EventTwo()
-        {
-        }
-    }
 }

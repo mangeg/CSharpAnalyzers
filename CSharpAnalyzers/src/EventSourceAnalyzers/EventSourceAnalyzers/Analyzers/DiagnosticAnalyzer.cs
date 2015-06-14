@@ -10,7 +10,7 @@ namespace EventSourceAnalyzers.Analyzers
     using Microsoft.CodeAnalysis.Text;
 
     [DiagnosticAnalyzer( LanguageNames.CSharp )]
-    public class EventSourceAnalyzersAnalyzer : DiagnosticAnalyzer
+    internal class EventSourceAnalyzers : DiagnosticAnalyzer
     {
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
             DiagnosticDescriptors.EventNumberUsedMultipleTimes,
@@ -26,31 +26,37 @@ namespace EventSourceAnalyzers.Analyzers
         public override void Initialize( AnalysisContext context )
         {
             context.RegisterSymbolAction( CheckForDuplicateEventIds, SymbolKind.NamedType );
+            context.RegisterSymbolAction( CheckMethodsHaveAttribute, SymbolKind.Method );
             context.RegisterSyntaxNodeAction( CheckForVariableInEventParam, SyntaxKind.AttributeArgument );
             context.RegisterSyntaxNodeAction( CheckWriteEventIdToEventAttributeId, SyntaxKind.InvocationExpression );
             context.RegisterSyntaxNodeAction( CheckWriteEventCall, SyntaxKind.ParameterList );
-            context.RegisterSymbolAction( ctx => {
-                var methodSymbol = ctx.Symbol as IMethodSymbol;
-                if ( methodSymbol == null ) return;
-
-                var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( ctx.Compilation );
-                var nonEventAttributeSymbol = EventSourceTypeSymbols.GetNonEventAttribute( ctx.Compilation );
-
-                var attribs = methodSymbol.GetAttributes();
-
-                if ( !attribs.Any( a => Equals( a.AttributeClass, eventAttributeSymbol ) || Equals( a.AttributeClass, nonEventAttributeSymbol ) ) )
-                {
-                    ctx.ReportDiagnostic( 
-                        Diagnostic.Create( 
-                            DiagnosticDescriptors.MethodsShouldHaveAttributes, 
-                            methodSymbol.Locations[0] ) );
-                }
-
-                //if(methodSymbol.GetAttributes().All( a => a ))
-
-            }, SymbolKind.Method );
         }
 
+        internal static void CheckMethodsHaveAttribute( SymbolAnalysisContext ctx )
+        {
+            var methodSymbol = ctx.Symbol as IMethodSymbol;
+            if ( methodSymbol == null ) return;
+
+            var eventSourceSymbol = EventSourceTypeSymbols.GetEventSource( ctx.Compilation );
+            var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( ctx.Compilation );
+            var nonEventAttributeSymbol = EventSourceTypeSymbols.GetNonEventAttribute( ctx.Compilation );
+
+            if ( eventSourceSymbol == null || eventAttributeSymbol == null || nonEventAttributeSymbol == null )
+                return;
+
+            if ( !methodSymbol.ContainingType.IsDerivedFrom( eventSourceSymbol ) )
+                return;
+
+            var attribs = methodSymbol.GetAttributes();
+
+            if ( !attribs.Any( a => Equals( a.AttributeClass, eventAttributeSymbol ) || Equals( a.AttributeClass, nonEventAttributeSymbol ) ) )
+            {
+                ctx.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.MethodsShouldHaveAttributes,
+                        methodSymbol.Locations[0] ) );
+            }
+        }
         internal static void CheckForDuplicateEventIds( SymbolAnalysisContext ctx )
         {
             if ( ctx.CancellationToken.IsCancellationRequested )
@@ -78,110 +84,15 @@ namespace EventSourceAnalyzers.Analyzers
 
             foreach ( var methods in methodIds.Where( m => m.Value.Count > 1 ) )
             {
-                foreach ( var method in methods.Value )
-                {
-                    var names = string.Join(
+                var names = string.Join(
                         ", ",
-                        methods.Value.Where( m => !Equals( m, method ) ).Select( m => m.Name ) );
-
-                    ctx.ReportDiagnostic(
-                        Diagnostic.Create(
-                            DiagnosticDescriptors.EventNumberUsedMultipleTimes,
-                            method.Locations[0],
-                            methods.Key,
-                            names ) );
-                }
-            }
-        }
-        internal static void CheckWriteEventIdToEventAttributeId( SyntaxNodeAnalysisContext ctx )
-        {
-            var invoke = ctx.Node as InvocationExpressionSyntax;
-            if ( invoke == null )
-                return;
-
-            var invokationModel = ctx.SemanticModel.GetSymbolInfo( invoke );
-
-            var invokeMethodSymbol = invokationModel.Symbol as IMethodSymbol;
-            if ( invokeMethodSymbol == null )
-                return;
-
-            var eventSourceType = EventSourceTypeSymbols.GetEventSource( ctx.SemanticModel.Compilation );
-            if ( !Equals( eventSourceType, invokeMethodSymbol.ContainingSymbol ) )
-            {
-                return;
-            }
-
-            if ( invokeMethodSymbol.Name != "WriteEvent" )
-                return;
-
-            if ( invoke.ArgumentList.Arguments.Count < 1 )
-                return;
-
-            var argExpression = invoke.ArgumentList.Arguments.First().Expression;
-            var constantValue = ctx.SemanticModel.GetConstantValue( argExpression );
-            if ( !constantValue.HasValue )
-            {
+                        methods.Value.Where( m => !Equals( m, methods.Value.Last() ) ).Select( m => m.Name ) );
                 ctx.ReportDiagnostic(
                     Diagnostic.Create(
-                        DiagnosticDescriptors.CallToWriteEventIdShouldBeConstant,
-                        argExpression.GetLocation() ) );
-                return;
-            }
-
-            if ( !( constantValue.Value is int ) )
-                return;
-
-            var methodDecl = invoke.FirstAncestorOrSelf<MethodDeclarationSyntax>();
-            if ( methodDecl == null )
-                return;
-
-            var methodInfo = ctx.SemanticModel.GetDeclaredSymbol( methodDecl );
-
-
-            if ( methodInfo == null )
-                return;
-
-            int eventId;
-            if ( methodInfo.TryGetEventId( out eventId, ctx.SemanticModel.Compilation ) )
-            {
-                var invokeId = (int)constantValue.Value;
-                if ( eventId != invokeId )
-                {
-                    ctx.ReportDiagnostic(
-                        Diagnostic.Create(
-                            DiagnosticDescriptors.CallToWriteEventMustUseSameEventId,
-                            argExpression.GetLocation(),
-                            invokeId,
-                            eventId ) );
-                }
-            }
-        }
-        internal static void CheckForVariableInEventParam( SyntaxNodeAnalysisContext ctx )
-        {
-            var argument = (AttributeArgumentSyntax)ctx.Node;
-
-            if ( !ctx.SemanticModel.IsAttributeType( argument, EventSourceTypeNames.EventAttribute ) )
-                return;
-
-            if ( argument.GetArgumentPosition() != 0 )
-                return;
-
-            var expression = argument.Expression;
-
-            var doShow = expression?.IsKind( SyntaxKind.NumericLiteralExpression ) == true;
-            if ( expression is BinaryExpressionSyntax )
-            {
-                var binaryExpression = expression as BinaryExpressionSyntax;
-                doShow = !binaryExpression.ContainsVariable();
-            }
-
-            if ( doShow )
-            {
-                var location = argument.GetLocation();
-                ctx.ReportDiagnostic(
-                    Diagnostic.Create(
-                        DiagnosticDescriptors.UseConstantAddersForEventId,
-                        location ) );
+                        DiagnosticDescriptors.EventNumberUsedMultipleTimes,
+                        methods.Value.Last().Locations[0],
+                        methods.Key,
+                        names ) );
             }
         }
         internal static void CheckWriteEventCall( SyntaxNodeAnalysisContext ctx )
@@ -285,6 +196,13 @@ namespace EventSourceAnalyzers.Analyzers
                                 DiagnosticDescriptors.NotAllInputParametersPassed,
                                 location ) );
                     }
+                    else if( writeEventMethodSymbol.ArgumentList.Arguments.Any() )
+                    {
+                        ctx.ReportDiagnostic(
+                            Diagnostic.Create(
+                                DiagnosticDescriptors.NotAllInputParametersPassed,
+                                writeEventMethodSymbol.ArgumentList.Arguments.First().GetLocation() ) );
+                    }
                 }
 
                 for ( var i = 0; i < methodSymbolInfo.Parameters.Count(); i++ )
@@ -317,6 +235,98 @@ namespace EventSourceAnalyzers.Analyzers
                 }
             }
 
+        }
+        internal static void CheckWriteEventIdToEventAttributeId( SyntaxNodeAnalysisContext ctx )
+        {
+            var invoke = ctx.Node as InvocationExpressionSyntax;
+            if ( invoke == null )
+                return;
+
+            var invokationModel = ctx.SemanticModel.GetSymbolInfo( invoke );
+
+            var invokeMethodSymbol = invokationModel.Symbol as IMethodSymbol;
+            if ( invokeMethodSymbol == null )
+                return;
+
+            var eventSourceType = EventSourceTypeSymbols.GetEventSource( ctx.SemanticModel.Compilation );
+            if ( !Equals( eventSourceType, invokeMethodSymbol.ContainingSymbol ) )
+            {
+                return;
+            }
+
+            if ( invokeMethodSymbol.Name != "WriteEvent" )
+                return;
+
+            var argExpression = invoke.ArgumentList.Arguments.First().Expression;
+            var constantValue = ctx.SemanticModel.GetConstantValue( argExpression );
+            if ( !constantValue.HasValue )
+            {
+                ctx.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.CallToWriteEventIdShouldBeConstant,
+                        argExpression.GetLocation() ) );
+                return;
+            }
+
+            if ( !( constantValue.Value is int ) )
+                return;
+
+            var methodDecl = invoke.FirstAncestorOrSelf<MethodDeclarationSyntax>();
+            if ( methodDecl == null )
+                return;
+
+            var methodInfo = ctx.SemanticModel.GetDeclaredSymbol( methodDecl );
+
+            if ( methodInfo == null )
+                return;
+
+            int eventId;
+            if ( !methodInfo.TryGetEventId( out eventId, ctx.SemanticModel.Compilation ) )
+                return;
+
+            var invokeId = (int)constantValue.Value;
+            if ( eventId != invokeId )
+            {
+                ctx.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.CallToWriteEventMustUseSameEventId,
+                        argExpression.GetLocation(),
+                        invokeId,
+                        eventId ) );
+            }
+            
+        }
+        internal static void CheckForVariableInEventParam( SyntaxNodeAnalysisContext ctx )
+        {
+            var argument = (AttributeArgumentSyntax)ctx.Node;
+
+            if ( !ctx.SemanticModel.IsAttributeType( argument, EventSourceTypeNames.EventAttribute ) )
+                return;
+
+            if ( argument.GetArgumentPosition() != 0 )
+                return;
+
+            var expression = argument.Expression;
+
+            var doShow = expression?.IsKind( SyntaxKind.NumericLiteralExpression ) == true;
+            if ( expression is BinaryExpressionSyntax )
+            {
+                var binaryExpression = expression as BinaryExpressionSyntax;
+                doShow = !binaryExpression.ContainsVariable();
+            }
+            if ( expression is ParenthesizedExpressionSyntax )
+            {
+                doShow = ( expression as ParenthesizedExpressionSyntax ).ContainsVariable();
+            }
+
+            if ( doShow )
+            {
+                var location = argument.GetLocation();
+                ctx.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.UseConstantAddersForEventId,
+                        location ) );
+            }
         }
     }
 }

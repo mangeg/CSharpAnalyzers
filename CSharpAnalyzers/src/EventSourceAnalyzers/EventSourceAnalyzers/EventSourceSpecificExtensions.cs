@@ -1,5 +1,6 @@
 namespace EventSourceAnalyzers
 {
+    using System.Collections.Generic;
     using System.Linq;
     using Microsoft.CodeAnalysis;
 
@@ -23,5 +24,22 @@ namespace EventSourceAnalyzers
             }
             return true;
         }
+
+        public static IEnumerable<int> GetUsedEventIds( this ITypeSymbol type, SemanticModel semanticModel )
+        {
+            var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( semanticModel.Compilation );
+
+            foreach ( var arg in type.GetMembers()
+                .OfType<IMethodSymbol>()
+                .SelectMany(
+                    a =>
+                        a.GetAttributes()
+                            .Where( at => at.AttributeClass == eventAttributeSymbol )
+                            .Select( att => att.ConstructorArguments.First( ac => ac.Value is int ) ) ) )
+            {
+                yield return (int)arg.Value;
+            }
+        }
     }
+    
 }

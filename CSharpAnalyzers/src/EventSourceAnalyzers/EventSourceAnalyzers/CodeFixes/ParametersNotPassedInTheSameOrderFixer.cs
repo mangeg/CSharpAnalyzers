@@ -86,37 +86,4 @@ namespace EventSourceAnalyzers.CodeFixes
             return WellKnownFixAllProviders.BatchFixer;
         }
     }
-
-    [ExportCodeFixProvider( LanguageNames.CSharp )]
-    public class EventIdUsedFixer : CodeFixProvider
-    {
-        public override ImmutableArray<string> FixableDiagnosticIds =>
-            ImmutableArray.Create( DiagnosticIds.EventNumberUsedMultipleTimes );
-
-        public override async Task RegisterCodeFixesAsync( CodeFixContext context )
-        {
-            var semanticModel = await context.Document.GetSemanticModelAsync( context.CancellationToken );
-            var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( semanticModel.Compilation );
-            if ( eventAttributeSymbol == null )
-            {
-                return;
-            }
-
-            var root = await context.Document.GetSyntaxRootAsync( context.CancellationToken );
-            var declaration = root.FindNode( context.Span )?.FirstAncestorOrSelf<MethodDeclarationSyntax>();
-
-            if ( declaration == null )
-                return;
-
-
-            context.RegisterCodeFix( CodeAction.Create( "Use next free number",
-                token => {
-
-
-
-                    return Task.FromResult( context.Document );
-                } ), context.Diagnostics );
-        }
-        
-    }
 }

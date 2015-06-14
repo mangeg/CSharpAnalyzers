@@ -61,6 +61,7 @@ namespace EventSourceAnalyzers.CodeFixes
                 }
             }
         }
+
         private static Task<Document> AddConstantVariable(
             CodeFixContext context,
             AttributeArgumentListSyntax decl,

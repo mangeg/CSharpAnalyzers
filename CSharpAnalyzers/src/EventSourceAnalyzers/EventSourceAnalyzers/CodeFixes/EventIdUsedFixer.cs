@@ -11,17 +11,19 @@ namespace EventSourceAnalyzers.CodeFixes
     using Microsoft.CodeAnalysis.CSharp.Syntax;
 
     [ExportCodeFixProvider( LanguageNames.CSharp )]
-    public class MethodShouldHaveAttributeFixer : CodeFixProvider
+    public class EventIdUsedFixer : CodeFixProvider
     {
-        public override ImmutableArray<string> FixableDiagnosticIds
-            => ImmutableArray.Create( DiagnosticIds.MethodShouldHaveAttributes );
+        public override ImmutableArray<string> FixableDiagnosticIds =>
+            ImmutableArray.Create( DiagnosticIds.EventNumberUsedMultipleTimes );
 
         public override async Task RegisterCodeFixesAsync( CodeFixContext context )
         {
             var semanticModel = await context.Document.GetSemanticModelAsync( context.CancellationToken );
+
             var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( semanticModel.Compilation );
-            
-            if ( eventAttributeSymbol == null )
+            var eventSourceSymbol = EventSourceTypeSymbols.GetEventSource( semanticModel.Compilation );
+
+            if ( eventAttributeSymbol == null || eventSourceSymbol == null )
             {
                 return;
             }
@@ -30,6 +32,14 @@ namespace EventSourceAnalyzers.CodeFixes
             var declaration = root.FindNode( context.Span )?.FirstAncestorOrSelf<MethodDeclarationSyntax>();
 
             if ( declaration == null )
+                return;
+
+            var methodSymbol = semanticModel.GetDeclaredSymbol( declaration );
+
+            if ( methodSymbol == null )
+                return;
+
+            if ( !methodSymbol.ContainingType.IsDerivedFrom( eventSourceSymbol ) )
                 return;
 
             var classDecl = declaration.FirstAncestorOrSelf<ClassDeclarationSyntax>();
@@ -55,55 +65,28 @@ namespace EventSourceAnalyzers.CodeFixes
 
                 eventId = eventId - constantValue;
 
+
                 context.RegisterCodeFix(
-                CodeAction.Create(
-                    $"Add Event attribute ({constant.Name} - {constantValue + eventId})", 
-                    ctx =>
-                    {
-                        return AddAttribute( context, constant.Name, eventId, declaration, semanticModel, root );
-                    } ),
-                context.Diagnostics );
+                    CodeAction.Create(
+                        $"Use next free number under '{constant.Name} ({constantValue}) - {constantValue + eventId}'",
+                        ctx => ChangeEventId( context.Document, root, semanticModel, constant.Name, eventId, declaration ) ),
+                    context.Diagnostics );
             }
-
-            
-
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    "Add NonEvent attribute",
-                    ctx =>
-                    {
-                        var attribs = SyntaxFactory.SeparatedList( new[] { SyntaxFactory.Attribute( SyntaxFactory.IdentifierName( "NonEvent" ) ) } );
-
-                        var newMethodDecl = SyntaxFactory.MethodDeclaration(
-                            SyntaxFactory.List( new[] { SyntaxFactory.AttributeList( attribs ) } ),
-                            declaration.Modifiers,
-                            declaration.ReturnType,
-                            declaration.ExplicitInterfaceSpecifier,
-                            declaration.Identifier,
-                            declaration.TypeParameterList,
-                            declaration.ParameterList,
-                            declaration.ConstraintClauses,
-                            declaration.Body,
-                            declaration.SemicolonToken );
-
-                        var newRoot = root.ReplaceNode( declaration, newMethodDecl );
-
-                        return Task.FromResult( context.Document.WithSyntaxRoot( newRoot ) );
-                    } ),
-                context.Diagnostics );
         }
 
-        private static Task<Document> AddAttribute(
-            CodeFixContext context,
+        internal static Task<Document> ChangeEventId(
+            Document document,
+            SyntaxNode root,
+            SemanticModel semanticModel,
             string constantName,
             int eventId,
-            MethodDeclarationSyntax method,
-            SemanticModel semanticModel,
-            SyntaxNode root )
+            MethodDeclarationSyntax method)
         {
+            var eventAttributeSymbol = EventSourceTypeSymbols.GetEventAttribute( semanticModel.Compilation );
             var eventSourceSymbol = EventSourceTypeSymbols.GetEventSource( semanticModel.Compilation );
 
             var replacementInfo = new Dictionary<SyntaxNode, SyntaxNode>();
+
             var newParam = SyntaxFactory.AttributeArgument(
                 SyntaxFactory.BinaryExpression(
                     SyntaxKind.AddExpression,
@@ -112,28 +95,23 @@ namespace EventSourceAnalyzers.CodeFixes
                     )
                 );
 
-            var attribs = SyntaxFactory.SeparatedList(
-                new[] {
-                    SyntaxFactory.Attribute(
-                        SyntaxFactory.IdentifierName( "Event" ),
-                        SyntaxFactory.AttributeArgumentList(
-                            SyntaxFactory.SeparatedList(
-                                new[] { newParam } ) ) )
-                } );
+            foreach ( var attributeList in method.AttributeLists )
+            {
+                foreach ( var attrib in attributeList.Attributes )
+                {
+                    var attribSymbol = semanticModel.GetSymbolInfo( attrib ).Symbol as IMethodSymbol;
+                    if ( attribSymbol == null )
+                        continue;
 
-            var newMethodDecl = SyntaxFactory.MethodDeclaration(
-                SyntaxFactory.List( new[] { SyntaxFactory.AttributeList( attribs ) } ),
-                method.Modifiers,
-                method.ReturnType,
-                method.ExplicitInterfaceSpecifier,
-                method.Identifier,
-                method.TypeParameterList,
-                method.ParameterList,
-                method.ConstraintClauses,
-                method.Body,
-                method.SemicolonToken );
+                    if ( attribSymbol.ContainingType == eventAttributeSymbol )
+                    {
+                        replacementInfo.Add( attrib.ArgumentList.Arguments.First(), newParam );
+                    }
+                }
+            }
 
             var invocations = method.DescendantNodes().OfType<InvocationExpressionSyntax>();
+
             foreach ( var invocationExpressionSyntax in invocations )
             {
                 var invocationSymbol =
@@ -153,18 +131,11 @@ namespace EventSourceAnalyzers.CodeFixes
                 }
             }
 
-            replacementInfo.Add( method, newMethodDecl );
-
             var newRoot = root.ReplaceNodes(
                 replacementInfo.Keys,
                 ( n1, n2 ) => replacementInfo[n1] );
 
-            return Task.FromResult( context.Document.WithSyntaxRoot( newRoot ) );
-        }
-
-        public override FixAllProvider GetFixAllProvider()
-        {
-            return WellKnownFixAllProviders.BatchFixer;
+            return Task.FromResult( document.WithSyntaxRoot( newRoot ) );
         }
     }
 }
