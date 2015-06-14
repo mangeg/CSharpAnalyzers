@@ -1,10 +1,14 @@
 # EventSource Analyzer
+
 ### Features
+
 - Verify no duplicate event IDs used. With codefix that gives the next free event number including constant variable.
 - Promote use of constant variables.
 - Verify all input parameters passed to WriteEvent and in the correct order.
 - Add WriteEvent when missing with the full parameter list. Supports simple, with enabled check and with detailed enabled check.
+
 #### Samples
+
 ##### Wrong event ID and missing input param:
 ```C#
 public class MyEventSource : EventSource
@@ -19,8 +23,10 @@ public class MyEventSource : EventSource
 }
 ```
 ###### Corrected:
+
 - Correct to be the same as in EventAttribute.
 - Correct and add all input paramters to the arguments.
+
 ```C#
 public class MyEventSource : EventSource
 {
@@ -33,8 +39,11 @@ public class MyEventSource : EventSource
     }
 }
 ```
+
 ##### Input params passed in the wrong order:
+
 ###### Error:
+
 ```C#
 public class MyEventSource : EventSource
 {
@@ -48,8 +57,10 @@ public class MyEventSource : EventSource
 }
 ```
 ###### Corrected:
+
 - Correct to be the same as in EventAttribute.
 - Correct and add all input paramters to the arguments.
+
 ```C#
 public class MyEventSource : EventSource
 {
@@ -62,7 +73,9 @@ public class MyEventSource : EventSource
     }
 }
 ```
+
 ##### Add call to WriteEvent:
+
 ```C#
 public class MyEventSource : EventSource
 {
