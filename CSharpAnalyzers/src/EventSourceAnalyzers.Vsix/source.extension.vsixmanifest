@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="EventSourceAnalyzers.Vsix..2427f12a-cc51-4b78-996c-40176745622c" Version="1.0" Language="en-US" Publisher="Magnus Gideryd"/>
+        <Identity Id="EventSourceAnalyzers.Vsix..2427f12a-cc51-4b78-996c-40176745622c" Version="1.0.1" Language="en-US" Publisher="Magnus Gideryd"/>
         <DisplayName>EventSource Code Analyzers</DisplayName>
         <Description xml:space="preserve">Code analyzers with fixes for using the EventSource class.  Verifies event ID usage and calls to WriteEvent(...).</Description>
         <MoreInfo>https://github.com/mangeg/CSharpAnalyzers</MoreInfo>
